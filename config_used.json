@@ -1,0 +1,13 @@
+{
+    "image_size": [
+        128,
+        128
+    ],
+    "population_size": 10,
+    "max_iters": 50,
+    "quantum_rate": 0.25,
+    "mutation_rate": 0.05,
+    "penalty_coef": 0.001,
+    "classifier_method": "RandomForest",
+    "use_scaling": true
+}
