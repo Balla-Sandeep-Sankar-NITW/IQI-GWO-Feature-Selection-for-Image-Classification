@@ -66,11 +66,11 @@ Prediction
 
 ## 📊 Results
 
-| Data Set           | Baseline Accuracy | Accuracy after IQI-GWO |
-| ------------------ | ----------------- | ---------------------- |
-| LC25000            | 96.3 %            | 99.70 ± 0.09 %         |
-| Plant-type-Dataset | 72.45 %           | 97.63 ± 0.02 %         |
-| IIITDMJ_Smoke      | 89.23 %           | 96.25 ± 0.04 %         |
+| Data Set           | Baseline Accuracy | Accuracy after IQI-GWO |  Feature Cutting |
+| ------------------ | ----------------- | ---------------------- | ---------------
+| LC25000            | 96.3 %            | 99.70 ± 0.09 %         |   172 / 512     |
+| Plant-type-Dataset | 72.45 %           | 97.63 ± 0.02 %         |   255 / 512     |
+| IIITDMJ_Smoke      | 89.23 %           | 96.25 ± 0.04 %         |   372 / 512     |
 
 ---
 
