@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IQI-GWO &mdash; Quantum-Inspired Grey Wolf Feature Selection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<style>
+/* ============================================================
+   TOKENS
+=============================================================== */
+:root{
+  --bg-void:#0b0e14;
+  --bg-panel:#121826;
+  --bg-panel-alt:#182036;
+  --bg-panel-hover:#1c2540;
+  --border:#242e46;
+  --border-soft:#1a2236;
+  --ink:#e8ecf5;
+  --ink-dim:#93a0b8;
+  --ink-faint:#5c667e;
+  --amber:#f0a868;
+  --amber-soft:rgba(240,168,104,.14);
+  --violet:#9385f7;
+  --cyan:#57d9d4;
+  --green:#4ade80;
+  --red:#f2777a;
+  --grad-quantum:linear-gradient(135deg,var(--violet) 0%,var(--cyan) 100%);
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --radius:10px;
+  --radius-lg:16px;
+  --maxw:1180px;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--bg-void);
+  color:var(--ink);
+  font-family:var(--font-body);
+  line-height:1.65;
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";
+  position:fixed;inset:0;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(147,133,247,.08), transparent 42%),
+    radial-gradient(circle at 88% 18%, rgba(87,217,212,.06), transparent 40%),
+    radial-gradient(circle at 50% 100%, rgba(240,168,104,.05), transparent 45%);
+  pointer-events:none;
+  z-index:0;
+}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:600;color:var(--ink);margin:0 0 .5em;letter-spacing:-.01em;}
+p{margin:0 0 1em;color:var(--ink-dim);}
+a{color:var(--cyan);text-decoration:none;}
+a:hover{text-decoration:underline;}
+code,pre{font-family:var(--font-mono);}
+::selection{background:rgba(147,133,247,.35);color:#fff;}
+.mono{font-family:var(--font-mono);}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px;position:relative;z-index:1;}
+img{max-width:100%;display:block;}
+
+/* ============================================================
+   NAV
+=============================================================== */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  background:rgba(11,14,20,.86);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border-soft);
+}
+.topbar-inner{
+  max-width:var(--maxw);margin:0 auto;padding:0 28px;
+  display:flex;align-items:center;gap:20px;height:64px;
+}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--ink);white-space:nowrap;}
+.brand .dot-eyes{display:inline-flex;gap:3px;}
+.brand .dot-eyes span{width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber);}
+.navlinks{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;}
+.navlinks::-webkit-scrollbar{display:none;}
+.navlinks a{
+  font-size:13.5px;color:var(--ink-dim);white-space:nowrap;padding:8px 12px;border-radius:7px;
+  font-weight:500;transition:.15s;
+}
+.navlinks a:hover{color:var(--ink);background:var(--bg-panel-alt);text-decoration:none;}
+.navlinks a.active{color:var(--violet);background:rgba(147,133,247,.1);}
+.search-box{position:relative;flex-shrink:0;}
+.search-box input{
+  background:var(--bg-panel);border:1px solid var(--border);color:var(--ink);
+  border-radius:8px;padding:8px 12px 8px 32px;font-size:13px;width:150px;transition:.2s;
+  font-family:var(--font-body);
+}
+.search-box input:focus{outline:none;border-color:var(--violet);width:200px;}
+.search-box i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:12px;}
+.navtoggle{display:none;background:none;border:1px solid var(--border);color:var(--ink);border-radius:8px;width:38px;height:38px;flex-shrink:0;}
+.search-empty{display:none;text-align:center;padding:60px 20px;color:var(--ink-faint);}
+.search-empty.show{display:block;}
+mark{background:rgba(240,168,104,.35);color:var(--ink);border-radius:3px;padding:0 2px;}
+
+/* ============================================================
+   HERO
+=============================================================== */
+.hero{padding:88px 0 64px;position:relative;overflow:hidden;}
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:56px;align-items:center;}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;
+  color:var(--amber);text-transform:uppercase;letter-spacing:.12em;margin-bottom:18px;
+  padding:5px 12px;border:1px solid rgba(240,168,104,.3);border-radius:20px;background:var(--amber-soft);
+}
+.hero h1{font-size:44px;line-height:1.08;margin-bottom:20px;}
+.hero h1 .grad{background:var(--grad-quantum);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.hero p.lead{font-size:16.5px;color:var(--ink-dim);max-width:560px;margin-bottom:28px;}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px;}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:9px;font-weight:600;font-size:14px;
+  border:1px solid transparent;cursor:pointer;transition:.15s;font-family:var(--font-body);
+}
+.btn-primary{background:var(--grad-quantum);color:#0b0e14;}
+.btn-primary:hover{filter:brightness(1.08);text-decoration:none;}
+.btn-ghost{background:var(--bg-panel);border-color:var(--border);color:var(--ink);}
+.btn-ghost:hover{background:var(--bg-panel-alt);text-decoration:none;}
+.badges{display:flex;gap:8px;flex-wrap:wrap;}
+.badge{
+  font-family:var(--font-mono);font-size:11.5px;color:var(--ink-dim);background:var(--bg-panel);
+  border:1px solid var(--border);padding:5px 10px;border-radius:6px;
+}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:36px;}
+.hstat{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;}
+.hstat .val{font-family:var(--font-mono);font-size:20px;font-weight:600;color:var(--green);}
+.hstat .lbl{font-size:11px;color:var(--ink-faint);margin-top:2px;}
+
+/* Signature: converging wolf-eyes / quantum diagram */
+.signature{
+  position:relative;aspect-ratio:1/1;max-width:420px;margin:0 auto;
+  background:radial-gradient(circle at center, var(--bg-panel-alt) 0%, var(--bg-void) 72%);
+  border-radius:50%;border:1px solid var(--border);
+}
+.signature svg{width:100%;height:100%;}
+.sig-caption{text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);margin-top:14px;letter-spacing:.03em;}
+
+/* ============================================================
+   SECTION GENERIC
+=============================================================== */
+section{padding:64px 0;border-top:1px solid var(--border-soft);}
+section:first-of-type{border-top:none;}
+.section-head{margin-bottom:36px;max-width:720px;}
+.section-num{font-family:var(--font-mono);font-size:12px;color:var(--violet);letter-spacing:.1em;margin-bottom:8px;display:block;}
+.section-head h2{font-size:30px;}
+.section-head p{font-size:15px;}
+
+.card{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;}
+.grid{display:grid;gap:18px;}
+.grid-2{grid-template-columns:1fr 1fr;}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+
+/* pills / icon tiles */
+.icon-tile{
+  width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  background:var(--grad-quantum);color:#0b0e14;font-size:15px;flex-shrink:0;
+}
+.feature-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;}
+.feature-card h4{font-size:15px;margin:14px 0 6px;}
+.feature-card p{font-size:13.8px;margin:0;}
+
+/* tech stack */
+.stack-item{
+  display:flex;align-items:center;gap:12px;background:var(--bg-panel);border:1px solid var(--border);
+  border-radius:var(--radius);padding:13px 16px;
+}
+.stack-item i{font-size:17px;color:var(--cyan);width:22px;text-align:center;}
+.stack-item div span{display:block;font-size:12px;color:var(--ink-faint);margin-top:1px;}
+.stack-item div b{font-size:13.5px;color:var(--ink);}
+
+/* architecture pipeline (css diagram) */
+.pipeline{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin-top:8px;}
+.pnode{
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;flex:1;min-width:160px;position:relative;
+}
+.pnode .pn-tag{font-family:var(--font-mono);font-size:10.5px;color:var(--violet);text-transform:uppercase;letter-spacing:.08em;}
+.pnode h4{font-size:14px;margin:6px 0 4px;}
+.pnode p{font-size:12.5px;margin:0;}
+.parrow{display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:18px;padding:0 6px;flex-shrink:0;}
+.pipeline-row{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;}
+.pipeline-branch{
+  margin-top:18px;padding:18px;border:1px dashed var(--border);border-radius:var(--radius-lg);
+  background:rgba(147,133,247,.03);
+}
+.pipeline-branch .pb-label{font-family:var(--font-mono);font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:block;}
+
+/* folder structure table */
+table{width:100%;border-collapse:collapse;font-size:13.8px;}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border-soft);}
+th{font-family:var(--font-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);font-weight:500;}
+td{color:var(--ink-dim);}
+td.file{font-family:var(--font-mono);color:var(--amber);font-weight:500;}
+tr:last-child td{border-bottom:none;}
+.results-table td b{color:var(--ink);}
+.results-table td.up{color:var(--green);font-family:var(--font-mono);}
+
+/* code blocks */
+.codeblock{
+  background:#0d1117;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:16px 0;
+}
+.codeblock-head{
+  display:flex;align-items:center;justify-content:space-between;padding:9px 14px;
+  background:var(--bg-panel-alt);border-bottom:1px solid var(--border);
+}
+.codeblock-head span{font-family:var(--font-mono);font-size:12px;color:var(--ink-faint);}
+.codeblock pre{margin:0;padding:16px;overflow-x:auto;font-size:12.6px;line-height:1.6;}
+.codeblock code{background:none !important;}
+.copy-btn{background:none;border:1px solid var(--border);color:var(--ink-faint);border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer;}
+.copy-btn:hover{color:var(--ink);border-color:var(--ink-faint);}
+
+/* collapsibles */
+.collapsible{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden;}
+.collapsible-head{
+  display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;user-select:none;
+}
+.collapsible-head:hover{background:var(--bg-panel-hover);}
+.collapsible-head .chev{margin-left:auto;color:var(--ink-faint);transition:.2s;}
+.collapsible.open .chev{transform:rotate(180deg);}
+.collapsible-head h4{margin:0;font-size:15.5px;}
+.collapsible-head .sub{font-size:12px;color:var(--ink-faint);font-family:var(--font-mono);}
+.collapsible-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.collapsible.open .collapsible-body{max-height:none;}
+.collapsible-body-inner{padding:0 20px 22px;}
+.func-tag{
+  display:inline-block;font-family:var(--font-mono);font-size:11px;background:var(--bg-panel-alt);
+  color:var(--cyan);border:1px solid var(--border);padding:2px 8px;border-radius:5px;margin:2px 4px 2px 0;
+}
+
+/* timeline */
+.timeline{position:relative;padding-left:44px;}
+.timeline::before{content:"";position:absolute;left:15px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--violet),var(--cyan));}
+.tl-item{position:relative;padding-bottom:34px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-num{
+  position:absolute;left:-44px;top:0;width:32px;height:32px;border-radius:50%;
+  background:var(--bg-panel);border:2px solid var(--violet);display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:12.5px;font-weight:600;color:var(--violet);
+}
+.tl-item h4{font-size:15.5px;margin-bottom:6px;}
+.tl-item p{font-size:13.8px;}
+
+/* config table */
+.cfg-key{font-family:var(--font-mono);color:var(--amber);font-size:13px;}
+.cfg-val{font-family:var(--font-mono);color:var(--green);font-size:13px;}
+
+/* results */
+.result-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:28px;}
+.result-img-wrap{background:#000;border-bottom:1px solid var(--border);}
+.result-body{padding:22px 24px;}
+.result-body .rtag{font-family:var(--font-mono);font-size:11px;color:var(--violet);text-transform:uppercase;letter-spacing:.08em;}
+.result-body h3{font-size:19px;margin:6px 0 10px;}
+.result-metrics{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px;}
+.rmetric{background:var(--bg-panel-alt);border:1px solid var(--border);border-radius:8px;padding:8px 13px;}
+.rmetric .rm-val{font-family:var(--font-mono);font-weight:600;font-size:15px;color:var(--ink);}
+.rmetric .rm-lbl{font-size:10.5px;color:var(--ink-faint);}
+.rmetric.pos .rm-val{color:var(--green);}
+
+/* advantages / limitations */
+.check-list{list-style:none;margin:0;padding:0;display:grid;gap:12px;}
+.check-list li{display:flex;gap:12px;font-size:14px;color:var(--ink-dim);align-items:flex-start;}
+.check-list i{margin-top:3px;flex-shrink:0;}
+.check-list.good i{color:var(--green);}
+.check-list.warn i{color:var(--amber);}
+
+/* footer */
+footer{border-top:1px solid var(--border-soft);padding:44px 0 60px;}
+.foot-grid{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;}
+.foot-links{display:flex;gap:18px;flex-wrap:wrap;}
+.foot-links a{color:var(--ink-dim);font-size:13.5px;}
+.back-top{
+  position:fixed;bottom:26px;right:26px;width:44px;height:44px;border-radius:50%;
+  background:var(--bg-panel);border:1px solid var(--border);color:var(--ink);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;opacity:0;pointer-events:none;transition:.25s;z-index:90;
+}
+.back-top.show{opacity:1;pointer-events:auto;}
+
+/* hidden state (search) */
+.hide-section{display:none !important;}
+
+/* ============================================================
+   RESPONSIVE
+=============================================================== */
+@media(max-width:980px){
+  .hero-grid{grid-template-columns:1fr;}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr 1fr;}
+  .signature{max-width:300px;}
+}
+@media(max-width:760px){
+  .navlinks{display:none;}
+  .navtoggle{display:block;}
+  .topbar.menu-open .navlinks{
+    display:flex;flex-direction:column;position:fixed;top:64px;left:0;right:0;bottom:0;
+    background:var(--bg-void);padding:14px;overflow-y:auto;z-index:99;
+  }
+  .search-box input{width:120px;}
+  .hero h1{font-size:32px;}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+  .pipeline-row{flex-direction:column;}
+  .parrow{transform:rotate(90deg);padding:6px 0;}
+  section{padding:44px 0;}
+}
+@media print{
+  .topbar,.back-top,.navtoggle,.search-box,.hero-actions,.btn{display:none !important;}
+  body{background:#fff;color:#000;}
+  section{border-top:1px solid #ccc;page-break-inside:avoid;}
+  .collapsible-body{max-height:none !important;}
+  a{color:#000;text-decoration:underline;}
+  .card,.feature-card,.result-card,.collapsible,.codeblock{border:1px solid #999;background:#fafafa;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="dot-eyes"><span></span><span></span></span> IQI&#8209;GWO</div>
+    <nav class="navlinks" id="navlinks">
+      <a href="#overview">Overview</a>
+      <a href="#objectives">Objectives</a>
+      <a href="#stack">Stack</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#structure">Structure</a>
+      <a href="#algorithm">Algorithm</a>
+      <a href="#feature-selection">Feature Selection</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#modules">Modules</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#config">Config</a>
+      <a href="#results">Results</a>
+      <a href="#advantages">Advantages</a>
+      <a href="#limitations">Limitations</a>
+      <a href="#future">Future</a>
+      <a href="#conclusion">Conclusion</a>
+      <a href="#references">References</a>
+    </nav>
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="searchInput" placeholder="Search docs&hellip;">
+    </div>
+    <button class="navtoggle" id="navToggle" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
+  </div>
+</div>
+
+<div class="search-empty" id="searchEmpty">
+  <i class="fa-solid fa-magnifying-glass" style="font-size:26px;margin-bottom:10px;"></i>
+  <p>No sections match your search.</p>
+</div>
+
+<main id="mainContent">
+
+<!-- ============================================================
+     HERO
+=============================================================== -->
+<section class="hero" style="border-top:none;padding-top:56px;">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow"><i class="fa-solid fa-paw"></i> Bio-Inspired Metaheuristic &middot; Wrapper Feature Selection</span>
+      <h1>Quantum&#8209;Inspired Grey Wolf<br>Optimization for <span class="grad">Image Classification</span></h1>
+      <p class="lead">A wrapper-based feature-selection pipeline that shrinks a 512-dimensional RGB color-histogram space down to the subset that best separates image classes &mdash; searched by <b>IQI&#8209;GWO</b>, a Grey Wolf Optimizer augmented with a quantum-inspired rotation operator and a nonlinear convergence schedule.</p>
+      <div class="hero-actions">
+        <a href="#algorithm" class="btn btn-primary"><i class="fa-solid fa-diagram-project"></i> Explore the Algorithm</a>
+        <a href="#results" class="btn btn-ghost"><i class="fa-solid fa-chart-line"></i> Jump to Results</a>
+      </div>
+      <div class="badges">
+        <span class="badge"><i class="fa-brands fa-python"></i> Python 3.8+</span>
+        <span class="badge">scikit-learn</span>
+        <span class="badge">OpenCV</span>
+        <span class="badge">Grey Wolf Optimizer</span>
+      </div>
+      <div class="hero-stats">
+        <div class="hstat"><div class="val">+27.4pp</div><div class="lbl">max accuracy gain (Plant, 30 classes)</div></div>
+        <div class="hstat"><div class="val">66%</div><div class="lbl">avg. feature reduction across datasets</div></div>
+        <div class="hstat"><div class="val">3</div><div class="lbl">real-world datasets validated</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="signature">
+        <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="pulse" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#9385f7" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#9385f7" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <circle cx="200" cy="200" r="150" fill="url(#pulse)">
+            <animate attributeName="r" values="120;150;120" dur="4s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="200" cy="200" r="118" fill="none" stroke="#242e46" stroke-width="1" stroke-dasharray="2 6"/>
+          <circle cx="200" cy="200" r="80" fill="none" stroke="#242e46" stroke-width="1" stroke-dasharray="2 6"/>
+          <!-- prey / optimal feature subset -->
+          <circle cx="200" cy="200" r="7" fill="#57d9d4">
+            <animate attributeName="r" values="5;8;5" dur="2.4s" repeatCount="indefinite"/>
+          </circle>
+          <!-- alpha wolf eyes -->
+          <g>
+            <circle cx="200" cy="60" r="5" fill="#f0a868">
+              <animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="22s" repeatCount="indefinite"/>
+            </circle>
+          </g>
+          <!-- beta wolf eyes -->
+          <g>
+            <circle cx="340" cy="200" r="4.5" fill="#f0a868" opacity="0.85">
+              <animateTransform attributeName="transform" type="rotate" from="0 200 200" to="-360 200 200" dur="17s" repeatCount="indefinite"/>
+            </circle>
+          </g>
+          <!-- delta wolf eyes -->
+          <g>
+            <circle cx="200" cy="340" r="4" fill="#f0a868" opacity="0.7">
+              <animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="27s" repeatCount="indefinite"/>
+            </circle>
+          </g>
+          <!-- omega scatter (population) -->
+          <g opacity="0.5">
+            <circle cx="90" cy="130" r="2.5" fill="#e8ecf5"><animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="35s" repeatCount="indefinite"/></circle>
+            <circle cx="300" cy="300" r="2.5" fill="#e8ecf5"><animateTransform attributeName="transform" type="rotate" from="0 200 200" to="-360 200 200" dur="30s" repeatCount="indefinite"/></circle>
+            <circle cx="120" cy="300" r="2.5" fill="#e8ecf5"><animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="40s" repeatCount="indefinite"/></circle>
+            <circle cx="310" cy="110" r="2.5" fill="#e8ecf5"><animateTransform attributeName="transform" type="rotate" from="0 200 200" to="-360 200 200" dur="24s" repeatCount="indefinite"/></circle>
+          </g>
+        </svg>
+      </div>
+      <div class="sig-caption">ALPHA &middot; BETA &middot; DELTA CONVERGE ON THE OPTIMAL FEATURE SUBSET</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     OVERVIEW
+=============================================================== -->
+<section id="overview">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">01 &middot; OVERVIEW</span>
+      <h2>What this project does</h2>
+      <p>IQI&#8209;GWO Feature Selection for Image Classification is a lightweight, classical-ML pipeline (no deep learning) that treats <b>feature selection as an optimization problem</b>. Instead of feeding every color-histogram bin into a classifier, it evolves a population of binary &ldquo;wolves&rdquo; &mdash; each one a candidate on/off mask over the 512 histogram features &mdash; toward the subset that maximizes validation accuracy while penalizing feature count.</p>
+    </div>
+    <div class="grid grid-3">
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-image"></i></div>
+        <h4>Handcrafted Features</h4>
+        <p>Every image is reduced to a 512-dim RGB color histogram (8&times;8&times;8 bins) &mdash; no CNN, no pretrained backbone.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-dna"></i></div>
+        <h4>Quantum-Inspired Search</h4>
+        <p>A rotation-gate-style <code>quantum_update()</code> operator occasionally replaces the standard GWO move, adding stochastic exploratory jumps.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-shield-halved"></i></div>
+        <h4>Leak-Proof Evaluation</h4>
+        <p>The validation split drives the optimizer's fitness function; the test split is touched only once, at final evaluation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     PROBLEM + OBJECTIVES
+=============================================================== -->
+<section id="objectives">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">02 &middot; PROBLEM &amp; OBJECTIVES</span>
+      <h2>Problem statement &amp; objectives</h2>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <h3 style="font-size:17px;"><i class="fa-solid fa-circle-question" style="color:var(--amber);margin-right:8px;"></i>Problem Statement</h3>
+        <p>Raw 512-dimensional color-histogram feature vectors contain redundant and noisy bins that add training cost and can dilute the signal a classifier needs to separate classes. The project's goal, stated directly in the source, is to find a smaller subset of histogram features that classifies at least as accurately &mdash; ideally more accurately &mdash; than using all 512 bins, without ever letting the optimizer see the held-out test set.</p>
+      </div>
+      <div class="card">
+        <h3 style="font-size:17px;"><i class="fa-solid fa-bullseye" style="color:var(--cyan);margin-right:8px;"></i>Objectives</h3>
+        <ul class="check-list good">
+          <li><i class="fa-solid fa-check"></i> Improve classification accuracy over a full-feature baseline</li>
+          <li><i class="fa-solid fa-check"></i> Reduce feature dimensionality</li>
+          <li><i class="fa-solid fa-check"></i> Remove noisy and irrelevant histogram bins</li>
+          <li><i class="fa-solid fa-check"></i> Keep the test set strictly out of the search loop to avoid data leakage</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TECH STACK
+=============================================================== -->
+<section id="stack">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">03 &middot; TECHNOLOGY STACK</span>
+      <h2>Built entirely on classical ML tooling</h2>
+      <p>Every dependency below is imported directly in the source files &mdash; there is no deep-learning framework in this repository.</p>
+    </div>
+    <div class="grid grid-4" id="stackGrid">
+      <div class="stack-item"><i class="fa-brands fa-python"></i><div><b>Python 3.8+</b><span>Core language </span></div></div>
+      <div class="stack-item"><i class="fa-solid fa-camera"></i><div><b>OpenCV (cv2)</b><span>Image I/O &amp; color histograms</span></div></div>
+      <div class="stack-item"><i class="fa-solid fa-calculator"></i><div><b>NumPy</b><span>Population arrays, masks, RNG</span></div></div>
+      <div class="stack-item"><i class="fa-solid fa-robot"></i><div><b>scikit-learn</b><span>SVC, RandomForest, MLP, metrics</span></div></div>
+      <div class="stack-item"><i class="fa-solid fa-ruler-combined"></i><div><b>StandardScaler</b><span>Feature scaling before SVM/RF</span></div></div>
+      <div class="stack-item"><i class="fa-solid fa-chart-simple"></i><div><b>Matplotlib + Seaborn</b><span>Confusion-matrix heatmaps</span></div></div>
+      <div class="stack-item"><i class="fa-solid fa-hourglass-half"></i><div><b>tqdm</b><span>IQI-GWO iteration progress bar</span></div></div>
+      <div class="stack-item"><i class="fa-solid fa-floppy-disk"></i><div><b>joblib</b><span>Persisting the trained model</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ARCHITECTURE
+=============================================================== -->
+<section id="architecture">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">04 &middot; PROJECT ARCHITECTURE</span>
+      <h2>End-to-end pipeline</h2>
+      <p>Orchestrated entirely by <code class="mono" style="color:var(--amber);">main.py</code>, which wires together the four core modules in sequence.</p>
+    </div>
+
+    <div class="pipeline-row">
+      <div class="pnode"><span class="pn-tag">Input</span><h4>Train / Val / Test Folders</h4><p>One subfolder per class, passed via <code>--train --val --test</code></p></div>
+      <div class="parrow"><i class="fa-solid fa-arrow-right"></i></div>
+      <div class="pnode"><span class="pn-tag">Load_DataSet.py</span><h4>Histogram Extraction</h4><p>Resize to 128&times;128, compute 8&times;8&times;8 RGB histogram &rarr; 512-d vector</p></div>
+      <div class="parrow"><i class="fa-solid fa-arrow-right"></i></div>
+      <div class="pnode"><span class="pn-tag">main.py</span><h4>Baseline SVM</h4><p>StandardScaler + SVC(rbf) on all 512 features, scored on test set</p></div>
+    </div>
+
+    <div class="pipeline-branch">
+      <span class="pb-label">Feature Selection Loop (uses Train + Val only)</span>
+      <div class="pipeline-row">
+        <div class="pnode"><span class="pn-tag">IQI_GWO.py</span><h4>Population Init</h4><p>10 wolves &times; 512-bit binary masks (config-driven)</p></div>
+        <div class="parrow"><i class="fa-solid fa-arrow-right"></i></div>
+        <div class="pnode"><span class="pn-tag">fitness_function()</span><h4>RF Surrogate Scoring</h4><p>RandomForest(50 trees) fit on train-subset, scored on val-subset</p></div>
+        <div class="parrow"><i class="fa-solid fa-arrow-right"></i></div>
+        <div class="pnode"><span class="pn-tag">optimize()</span><h4>50 Iterations</h4><p>Quantum update / GWO leader-following / mutation per wolf</p></div>
+        <div class="parrow"><i class="fa-solid fa-arrow-right"></i></div>
+        <div class="pnode"><span class="pn-tag">Output</span><h4>alpha_pos Mask</h4><p>Best binary feature mask &rarr; saved as <code>selected_features.npy</code></p></div>
+      </div>
+    </div>
+
+    <div class="pipeline-row" style="margin-top:18px;">
+      <div class="pnode"><span class="pn-tag">Train_Classifier.py</span><h4>Final Classifier</h4><p>RandomForest(100 trees) trained on selected + re-scaled features</p></div>
+      <div class="parrow"><i class="fa-solid fa-arrow-right"></i></div>
+      <div class="pnode"><span class="pn-tag">Evaluate_Model.py</span><h4>Test Evaluation</h4><p>Accuracy, macro F1, confusion-matrix heatmap saved to PNG</p></div>
+      <div class="parrow"><i class="fa-solid fa-arrow-right"></i></div>
+      <div class="pnode"><span class="pn-tag">Console</span><h4>Baseline vs. After IQI-GWO</h4><p>Final accuracy comparison printed to stdout</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOLDER STRUCTURE
+=============================================================== -->
+<section id="structure">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">05 &middot; FOLDER STRUCTURE</span>
+      <h2>Repository layout</h2>
+      <p>The repository is flat &mdash; every script lives at the project root, one level above a user-created <code>DataSets/</code> folder.</p>
+    </div>
+    <div class="card" style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>File</th><th>Role</th><th>Key Contents</th></tr></thead>
+        <tbody>
+          <tr><td class="file">main.py</td><td>Pipeline entry point</td><td>CLI args, CONFIG dict, orchestrates load &rarr; baseline &rarr; IQI-GWO &rarr; train &rarr; evaluate</td></tr>
+          <tr><td class="file">IQI_GWO.py</td><td>Optimization algorithm</td><td><code>IQI_GWO</code> class: population init, fitness function, quantum update, mutation, optimize loop</td></tr>
+          <tr><td class="file">Load_DataSet.py</td><td>Dataset loading</td><td><code>load_dataset_from_path()</code> &mdash; folder walk + OpenCV histogram extraction</td></tr>
+          <tr><td class="file">Train_Classifier.py</td><td>Model training</td><td><code>train_classifier()</code> &mdash; RandomForest / SVC / MLP factory</td></tr>
+          <tr><td class="file">Evaluate_Model.py</td><td>Performance evaluation</td><td><code>evaluate_model()</code> &mdash; accuracy, macro F1, confusion-matrix PNG</td></tr>
+          <tr><td class="file">split_data.py</td><td>Data splitting utility</td><td>CLI tool to split a labeled folder into ratio-based subsets (e.g. train:val)</td></tr>
+          <tr><td class="file">unzip.py</td><td>Dataset extraction</td><td>CLI tool that extracts every <code>.zip</code> in a directory and flattens nested folders</td></tr>
+          <tr><td class="file">config_used.json</td><td>Configuration snapshot</td><td>The exact hyperparameters used to produce the published results</td></tr>
+          <tr><td class="file">instructions.md</td><td>Setup guide</td><td>Dataset download links + exact commands per dataset</td></tr>
+          <tr><td class="file">README.md</td><td>Project summary</td><td>Overview, results table, fitness formula, key insights</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ALGORITHM
+=============================================================== -->
+<section id="algorithm">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">06 &middot; THE IQI-GWO ALGORITHM</span>
+      <h2>Improved Quantum-Inspired Grey Wolf Optimizer</h2>
+      <p>Implemented entirely in <code class="mono" style="color:var(--amber);">IQI_GWO.py</code> as a single class. It is a <b>binary, wrapper-based</b> variant of the Grey Wolf Optimizer: each &ldquo;wolf&rdquo; is a bit-vector over the 512 histogram features, and the pack hunts for the mask with the highest fitness.</p>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom:24px;">
+      <div class="card">
+        <h4 style="font-size:15px;"><i class="fa-solid fa-sliders" style="color:var(--violet);margin-right:8px;"></i>Constructor Parameters</h4>
+        <table>
+          <tbody>
+            <tr><td class="cfg-key">population_size</td><td>Number of wolves in the pack (default 20, run with 10)</td></tr>
+            <tr><td class="cfg-key">max_iters</td><td>Optimization generations (default 30, run with 50)</td></tr>
+            <tr><td class="cfg-key">quantum_rate</td><td>Probability a wolf uses the quantum update instead of GWO move (default 0.3, run with 0.25)</td></tr>
+            <tr><td class="cfg-key">mutation_rate</td><td>Per-bit flip probability (default 0.1, run with 0.05)</td></tr>
+            <tr><td class="cfg-key">penalty_coef</td><td>Weight &lambda; on the feature-count penalty (default 0.01, run with 0.001)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h4 style="font-size:15px;"><i class="fa-solid fa-square-root-variable" style="color:var(--cyan);margin-right:8px;"></i>Fitness Function</h4>
+        <p style="margin-bottom:10px;">implemented in <code>fitness_function()</code>:</p>
+        <div style="background:var(--bg-panel-alt);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;font-family:var(--font-mono);font-size:14px;color:var(--ink);">
+          Fitness&nbsp;=&nbsp;Accuracy&nbsp;&minus;&nbsp;&lambda;&nbsp;&times;&nbsp;(Selected&nbsp;Features&nbsp;/&nbsp;Total&nbsp;Features)
+        </div>
+        <p style="margin-top:10px;font-size:13px;">Accuracy comes from fitting the surrogate classifier (RandomForest, 50 trees) on the <b>train split</b> restricted to the mask's active columns, then scoring on the <b>validation split</b>. A mask with zero active bits is assigned fitness &minus;1.</p>
+      </div>
+    </div>
+
+    <h3 style="font-size:19px;margin-top:32px;">What makes it &ldquo;Improved&rdquo; and &ldquo;Quantum-Inspired&rdquo;</h3>
+    <div class="grid grid-2" style="margin-bottom:10px;">
+      <div class="feature-card">
+        <div class="icon-tile" style="background:var(--grad-quantum);"><i class="fa-solid fa-atom"></i></div>
+        <h4>Quantum Rotation Update</h4>
+        <p>Instead of always following the alpha/beta/delta leaders, each wolf has a <code>quantum_rate</code> chance of jumping via <code>quantum_update()</code>: a random rotation angle &theta; blends each bit with its complement (<code>cos(&theta;)&middot;bit + sin(&theta;)&middot;(1&minus;bit)</code>), then re-binarizes at 0.5. This is a stochastic, leader-independent exploration move borrowed from quantum-inspired evolutionary algorithms.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-chart-line"></i></div>
+        <h4>Nonlinear Convergence Coefficient</h4>
+        <p>Classical GWO decays its exploration coefficient linearly (<code>a = 2 &minus; 2t/T</code>). This implementation instead uses <code>a&nbsp;=&nbsp;2&nbsp;&minus;&nbsp;2&times;(t/T)&sup2;</code> &mdash; a quadratic decay that stays high (exploratory) longer and then drops off faster, shifting the pack from exploration to exploitation later in the run.</p>
+      </div>
+    </div>
+
+    <div class="codeblock">
+      <div class="codeblock-head"><span><i class="fa-solid fa-file-code"></i> IQI_GWO.py &mdash; quantum_update() &amp; mutate()</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button></div>
+      <pre><code class="language-python">def quantum_update(self, wolf):
+    theta = np.random.uniform(0, 2 * np.pi, self.n_features)
+    q = np.cos(theta) * wolf + np.sin(theta) * (1 - wolf)
+    return (q > 0.5).astype(int)
+
+def mutate(self, wolf):
+    for i in range(self.n_features):
+        if np.random.rand() < self.mutation_rate:
+            wolf[i] = 1 - wolf[i]
+    if wolf.sum() == 0:
+        wolf[np.random.randint(0, self.n_features)] = 1
+    return wolf</code></pre>
+    </div>
+
+    <div class="codeblock">
+      <div class="codeblock-head"><span><i class="fa-solid fa-file-code"></i> IQI_GWO.py &mdash; leader hierarchy &amp; binary position update (inside optimize())</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button></div>
+      <pre><code class="language-python">a = 2 - 2 * ((it / self.max_iters) ** 2)   # nonlinear decay
+
+for i in range(self.population_size):
+    if np.random.rand() < self.quantum_rate:
+        self.population[i] = self.quantum_update(self.population[i])
+    else:
+        A1, C1 = 2 * a * np.random.rand() - a, 2 * np.random.rand()
+        A2, C2 = 2 * a * np.random.rand() - a, 2 * np.random.rand()
+        A3, C3 = 2 * a * np.random.rand() - a, 2 * np.random.rand()
+
+        D_alpha = abs(C1 * self.alpha_pos - self.population[i])
+        D_beta  = abs(C2 * self.beta_pos  - self.population[i])
+        D_delta = abs(C3 * self.delta_pos - self.population[i])
+
+        X1 = self.alpha_pos - A1 * D_alpha
+        X2 = self.beta_pos  - A2 * D_beta
+        X3 = self.delta_pos - A3 * D_delta
+
+        new = (X1 + X2 + X3) / 3
+        self.population[i] = (self.sigmoid(new) > 0.5).astype(int)
+
+    if np.random.rand() < self.mutation_rate:
+        self.population[i] = self.mutate(self.population[i])</code></pre>
+    </div>
+
+    <p style="font-size:13.5px;">Each wolf's continuous candidate position (averaged pull from the three leaders) is passed through a <b>sigmoid transfer function</b> and thresholded at 0.5 &mdash; the standard technique for adapting continuous GWO to a binary search space. After every iteration, the current best (<code>alpha_pos</code>) is re-scored and logged to <code>self.history</code> (fitness, accuracy, feature count) for later inspection.</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     FEATURE SELECTION METHODOLOGY
+=============================================================== -->
+<section id="feature-selection">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">07 &middot; FEATURE SELECTION METHODOLOGY</span>
+      <h2>From pixels to a 512-bit search space</h2>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <h4 style="font-size:15px;"><i class="fa-solid fa-image" style="color:var(--amber);margin-right:8px;"></i>Feature Extraction &mdash; <code>Load_DataSet.py</code></h4>
+        <p style="font-size:13.8px;">Each class lives in its own subfolder; the folder name becomes the label. Every image is:</p>
+        <ol style="font-size:13.5px;color:var(--ink-dim);padding-left:18px;">
+          <li>Read with <code>cv2.imread</code></li>
+          <li>Resized to <code>config["image_size"]</code> (128&times;128)</li>
+          <li>Converted to a 3D color histogram via <code>cv2.calcHist</code> over channels [0,1,2] with 8 bins each</li>
+          <li>Normalized with <code>cv2.normalize</code> and flattened &rarr; <b>8&times;8&times;8 = 512</b> features</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h4 style="font-size:15px;"><i class="fa-solid fa-layer-group" style="color:var(--violet);margin-right:8px;"></i>Why This Design Works for GWO</h4>
+        <p style="font-size:13.8px;">Because every image collapses to a <b>fixed-length 512-d vector</b>, the optimizer's search space is a constant-size binary string regardless of dataset or image resolution. This keeps IQI-GWO dataset-agnostic: it can select the best histogram bins for a 4-class smoke dataset just as easily as a 30-class plant dataset &mdash; only the underlying classifier accuracy signal changes.</p>
+        <p style="font-size:13.8px;">Feature selection here is therefore a form of <b>color-channel relevance filtering</b>: bins corresponding to background colors, lighting artifacts, or shared hues across classes are natural candidates to be dropped.</p>
+      </div>
+    </div>
+    <div class="codeblock">
+      <div class="codeblock-head"><span><i class="fa-solid fa-file-code"></i> Load_DataSet.py &mdash; histogram extraction</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button></div>
+      <pre><code class="language-python">img = cv2.imread(img_path)
+img = cv2.resize(img, CONFIG["image_size"])
+hist = cv2.calcHist([img], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
+hist = cv2.normalize(hist, hist).flatten()</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CLASSIFICATION PIPELINE
+=============================================================== -->
+<section id="pipeline">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">08 &middot; IMAGE CLASSIFICATION PIPELINE</span>
+      <h2>Two classifiers, two jobs</h2>
+      <p>The pipeline deliberately uses <b>two different classifiers for two different purposes</b> &mdash; a design choice visible directly in <code>main.py</code>.</p>
+    </div>
+    <div class="grid grid-2">
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-scale-balanced"></i></div>
+        <h4>1. Baseline &mdash; SVC (rbf kernel)</h4>
+        <p>Trained on <b>all 512</b> StandardScaler-scaled features, evaluated once on the test set. This produces the &ldquo;before&rdquo; number in every result comparison.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-tree"></i></div>
+        <h4>2a. Search Surrogate &mdash; RandomForest (50 trees)</h4>
+        <p>Used <i>inside</i> <code>fitness_function()</code> during optimization &mdash; fast to retrain thousands of times across 10 wolves &times; 50 iterations.</p>
+      </div>
+    </div>
+    <div class="feature-card" style="margin-top:18px;">
+      <div class="icon-tile"><i class="fa-solid fa-crown"></i></div>
+      <h4>2b. Final Classifier &mdash; configurable via <code>Train_Classifier.py</code></h4>
+      <p>Trained once, after the search finishes, on the selected feature subset (re-scaled). <code>CONFIG["classifier_method"]</code> selects between three options:</p>
+      <div class="grid grid-3" style="margin-top:10px;">
+        <div class="stack-item"><i class="fa-solid fa-tree" style="color:var(--green);"></i><div><b>RandomForest</b><span>100 trees, max_depth=20 (default, used in all published runs)</span></div></div>
+        <div class="stack-item"><i class="fa-solid fa-vector-square" style="color:var(--cyan);"></i><div><b>SVC</b><span>rbf kernel, probability=True</span></div></div>
+        <div class="stack-item"><i class="fa-solid fa-brain" style="color:var(--violet);"></i><div><b>MLPClassifier</b><span>hidden layers (128, 64), max_iter=500</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     MODULE REFERENCE (collapsible)
+=============================================================== -->
+<section id="modules">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">09 &middot; MODULE-WISE REFERENCE</span>
+      <h2>Every source file, function by function</h2>
+      <p>Click a module to expand its responsibilities, key functions, and source.</p>
+    </div>
+
+    <div class="collapsible" data-open="true">
+      <div class="collapsible-head" onclick="toggleCollapse(this)">
+        <div class="icon-tile"><i class="fa-solid fa-play"></i></div>
+        <div><h4>main.py</h4><span class="sub">Pipeline entry point &middot; 98 lines</span></div>
+        <i class="fa-solid fa-chevron-down chev"></i>
+      </div>
+      <div class="collapsible-body">
+        <div class="collapsible-body-inner">
+          <p>Parses <code>--train / --val / --test</code> CLI arguments, defines the global <code>CONFIG</code> hyperparameter dict, and calls every other module in sequence: load data &rarr; baseline SVM &rarr; <code>IQI_GWO.optimize()</code> &rarr; <code>train_classifier()</code> &rarr; <code>evaluate_model()</code>. Sets <code>np.random.seed(42)</code> once at import time and saves <code>selected_features.npy</code> / <code>trained_model.joblib</code>.</p>
+          <span class="func-tag">main()</span>
+          <div class="codeblock">
+            <div class="codeblock-head"><span><i class="fa-solid fa-file-code"></i> main.py &mdash; CONFIG</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button></div>
+            <pre><code class="language-python">CONFIG = {
+    "image_size": (128, 128),
+    "population_size": 10,
+    "max_iters": 50,
+    "quantum_rate": 0.25,
+    "mutation_rate": 0.05,
+    "penalty_coef": 0.001,
+    "classifier_method": "RandomForest",
+    "use_scaling": True
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <div class="collapsible-head" onclick="toggleCollapse(this)">
+        <div class="icon-tile"><i class="fa-solid fa-paw"></i></div>
+        <div><h4>IQI_GWO.py</h4><span class="sub">Optimization algorithm &middot; 100 lines</span></div>
+        <i class="fa-solid fa-chevron-down chev"></i>
+      </div>
+      <div class="collapsible-body">
+        <div class="collapsible-body-inner">
+          <p>Defines the <code>IQI_GWO</code> class covered in detail in <a href="#algorithm">Section 06</a>. Key methods:</p>
+          <span class="func-tag">__init__()</span>
+          <span class="func-tag">fitness_function()</span>
+          <span class="func-tag">sigmoid()</span>
+          <span class="func-tag">quantum_update()</span>
+          <span class="func-tag">mutate()</span>
+          <span class="func-tag">optimize()</span>
+          <p style="margin-top:10px;">Population is initialized as a random <code>population_size &times; n_features</code> binary matrix, with a safeguard that re-rolls one random bit to 1 for any all-zero individual so no wolf starts with zero active features.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <div class="collapsible-head" onclick="toggleCollapse(this)">
+        <div class="icon-tile"><i class="fa-solid fa-folder-open"></i></div>
+        <div><h4>Load_DataSet.py</h4><span class="sub">Dataset loading &amp; histogram extraction &middot; 36 lines</span></div>
+        <i class="fa-solid fa-chevron-down chev"></i>
+      </div>
+      <div class="collapsible-body">
+        <div class="collapsible-body-inner">
+          <p>Reads <code>config_used.json</code> at import time into a module-level <code>CONFIG</code> dict. Exposes a single function:</p>
+          <span class="func-tag">load_dataset_from_path(path)</span>
+          <p style="margin-top:10px;">Walks each class subfolder (sorted alphabetically &rarr; deterministic label indices), filters for <code>jpg / jpeg / png / bmp / tif</code> files, skips unreadable images, and returns <code>(images, labels, class_names)</code> as NumPy arrays.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <div class="collapsible-head" onclick="toggleCollapse(this)">
+        <div class="icon-tile"><i class="fa-solid fa-graduation-cap"></i></div>
+        <div><h4>Train_Classifier.py</h4><span class="sub">Classifier factory &middot; 20 lines</span></div>
+        <i class="fa-solid fa-chevron-down chev"></i>
+      </div>
+      <div class="collapsible-body">
+        <div class="collapsible-body-inner">
+          <span class="func-tag">train_classifier(X, y, method="RandomForest")</span>
+          <p style="margin-top:10px;">Instantiates and fits <code>RandomForestClassifier</code>, <code>SVC</code>, or <code>MLPClassifier</code> based on the <code>method</code> string, raising <code>ValueError</code> for anything else. All three use <code>random_state=42</code> for reproducibility.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <div class="collapsible-head" onclick="toggleCollapse(this)">
+        <div class="icon-tile"><i class="fa-solid fa-chart-simple"></i></div>
+        <div><h4>Evaluate_Model.py</h4><span class="sub">Metrics &amp; confusion matrix &middot; 22 lines</span></div>
+        <i class="fa-solid fa-chevron-down chev"></i>
+      </div>
+      <div class="collapsible-body">
+        <div class="collapsible-body-inner">
+          <span class="func-tag">evaluate_model(model, X_test, y_test, class_names)</span>
+          <p style="margin-top:10px;">Predicts on the test set, computes accuracy and macro-averaged F1, renders a Seaborn heatmap of the confusion matrix, saves it to <code>confusion_matrix.png</code> (overwritten per run), and returns <code>{"accuracy": acc, "f1": f1m}</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <div class="collapsible-head" onclick="toggleCollapse(this)">
+        <div class="icon-tile"><i class="fa-solid fa-scissors"></i></div>
+        <div><h4>split_data.py</h4><span class="sub">Ratio-based dataset splitter &middot; 114 lines</span></div>
+        <i class="fa-solid fa-chevron-down chev"></i>
+      </div>
+      <div class="collapsible-body">
+        <div class="collapsible-body-inner">
+          <span class="func-tag">split_dataset()</span>
+          <span class="func-tag">validate_splits()</span>
+          <span class="func-tag">parse_args()</span>
+          <p style="margin-top:10px;">A standalone CLI utility (not imported by <code>main.py</code>) that copies files from each category folder into <code>{split_name}_data/{category}</code> directories according to comma-separated names and colon-separated ratios (ratios may be fractions like <code>800/9</code>). Used once, on the LC25000 dataset, to create its train/val split.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <div class="collapsible-head" onclick="toggleCollapse(this)">
+        <div class="icon-tile"><i class="fa-solid fa-box-open"></i></div>
+        <div><h4>unzip.py</h4><span class="sub">Zip extraction utility &middot; 63 lines</span></div>
+        <i class="fa-solid fa-chevron-down chev"></i>
+      </div>
+      <div class="collapsible-body">
+        <div class="collapsible-body-inner">
+          <span class="func-tag">extract_all_zips(dataset_dir)</span>
+          <p style="margin-top:10px;">Finds every <code>.zip</code> in a directory, extracts each into a temporary folder, then moves the extracted top-level items up beside the original zip (skipping any that would overwrite an existing folder) before deleting the temp directory.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <div class="collapsible-head" onclick="toggleCollapse(this)">
+        <div class="icon-tile"><i class="fa-solid fa-gear"></i></div>
+        <div><h4>config_used.json</h4><span class="sub">Configuration snapshot &middot; 13 lines</span></div>
+        <i class="fa-solid fa-chevron-down chev"></i>
+      </div>
+      <div class="collapsible-body">
+        <div class="collapsible-body-inner">
+          <p>A plain JSON snapshot of the hyperparameters used to produce the published results. Loaded by <code>Load_DataSet.py</code> to read <code>image_size</code>; the same values are also hardcoded into <code>main.py</code>'s <code>CONFIG</code> dict. See the <a href="#config">Configuration</a> section for the full table.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     EXECUTION WORKFLOW
+=============================================================== -->
+<section id="workflow">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">10 &middot; EXECUTION WORKFLOW</span>
+      <h2>Step-by-step, from <code style="font-size:.7em;">instructions.md</code></h2>
+    </div>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-num">1</div>
+        <h4>Download the datasets</h4>
+        <p>LC25000 (lung &amp; colon histopathology), Plants Type Dataset, and IIITDMJ_Smoke &mdash; saved into a local <code>DataSets/</code> folder.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-num">2</div>
+        <h4>Install dependencies</h4>
+        <p><code>pip install numpy joblib scikit-learn</code> &mdash; note the source also imports <code>opencv-python</code>, <code>tqdm</code>, <code>matplotlib</code> and <code>seaborn</code>, which the instructions do not list explicitly but which are required to run the scripts.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-num">3</div>
+        <h4>Extract archives</h4>
+        <p><code>python unzip.py --path "DataSets"</code>. <code>IIITDMJ_Smoke.zip</code> contains a nested zip, so <code>unzip.py</code> is run a second time targeting <code>DataSets/IIITDMJ_Smoke</code>.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-num">4</div>
+        <h4>Split LC25000 into train/val</h4>
+        <p><code>python split_data.py --path "DataSets/lung_colon_image_set/Train and Validation Set" --splits 2 --names train,val --ratio 800/9:100/8</code>. The other two datasets already ship with separate train/val/test folders.</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-num">5</div>
+        <h4>Run <code>main.py</code> per dataset</h4>
+        <p>Each dataset gets its own invocation with dataset-specific <code>--train / --val / --test</code> paths (three exact commands are given in <code>instructions.md</code>, one per dataset).</p>
+      </div>
+      <div class="tl-item">
+        <div class="tl-num">6</div>
+        <h4>Inspect outputs</h4>
+        <p><code>selected_features.npy</code> (chosen histogram bin indices), <code>trained_model.joblib</code> (fitted classifier), <code>confusion_matrix.png</code>, and the console log shown in the <a href="#results">Results</a> section.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CONFIG
+=============================================================== -->
+<section id="config">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">11 &middot; HYPERPARAMETERS &amp; CONFIGURATION</span>
+      <h2>Configurable settings</h2>
+      <p>Values below are taken verbatim from <code>config_used.json</code>, which matches the <code>CONFIG</code> dict hardcoded in <code>main.py</code>.</p>
+    </div>
+    <div class="card" style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Key</th><th>Value</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td class="cfg-key">image_size</td><td class="cfg-val">[128, 128]</td><td>Resize target before histogram extraction</td></tr>
+          <tr><td class="cfg-key">population_size</td><td class="cfg-val">10</td><td>Number of wolves searching per iteration</td></tr>
+          <tr><td class="cfg-key">max_iters</td><td class="cfg-val">50</td><td>Optimization generations</td></tr>
+          <tr><td class="cfg-key">quantum_rate</td><td class="cfg-val">0.25</td><td>Chance a wolf uses the quantum jump instead of GWO leader-following</td></tr>
+          <tr><td class="cfg-key">mutation_rate</td><td class="cfg-val">0.05</td><td>Per-bit mutation probability, applied after the position update</td></tr>
+          <tr><td class="cfg-key">penalty_coef</td><td class="cfg-val">0.001 (&lambda;)</td><td>Weight of the feature-count penalty in the fitness function</td></tr>
+          <tr><td class="cfg-key">classifier_method</td><td class="cfg-val">"RandomForest"</td><td>Final classifier trained on the selected features</td></tr>
+          <tr><td class="cfg-key">use_scaling</td><td class="cfg-val">true</td><td>Present in config, but not read via a conditional anywhere in <code>main.py</code> &mdash; scaling is applied unconditionally regardless of this flag</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:16px;font-size:13.5px;"><i class="fa-solid fa-circle-info" style="color:var(--cyan);margin-right:6px;"></i>The <code>IQI_GWO</code> class itself defines different constructor defaults (<code>population_size=20, max_iters=30, quantum_rate=0.3, mutation_rate=0.1, penalty_coef=0.01</code>) &mdash; these only apply if the class is instantiated without explicit arguments; every result in this document used the <code>CONFIG</code>-driven values above, passed explicitly from <code>main.py</code>.</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     RESULTS
+=============================================================== -->
+<section id="results">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">12 &middot; RESULTS</span>
+      <h2>Console output across three real datasets</h2>
+      <p>The screenshots below are actual terminal runs of <code>main.py</code> against each dataset, showing the full pipeline from data loading through baseline SVM to the post-IQI-GWO classifier.</p>
+    </div>
+
+    <div class="card results-table" style="overflow-x:auto;margin-bottom:32px;">
+      <table>
+        <thead><tr><th>Dataset</th><th>Baseline Acc. (SVM)</th><th>After IQI-GWO</th><th>Features Kept</th><th>Best Fitness</th></tr></thead>
+        <tbody>
+          <tr><td><b>IIITDMJ_Smoke</b> (4 classes)</td><td>89.23%</td><td class="up">96.28%</td><td>372 / 512 (72.7%)</td><td>0.9739</td></tr>
+          <tr><td><b>LC25000</b> (5 classes)</td><td>96.64%</td><td class="up">99.80%</td><td>172 / 512 (33.6%)</td><td>0.9949</td></tr>
+          <tr><td><b>Plant-Type Dataset</b> (30 classes)</td><td>72.45%</td><td class="up">97.83%</td><td>255 / 512 (49.8%)</td><td>0.9828</td></tr>
+        </tbody>
+      </table>
+    </div>
+    
+
+    <div class="result-card">
+      <div class="result-img-wrap"><img src="{{IMG3}}" alt="Terminal output of main.py run on IIITDMJ_Smoke dataset showing baseline SVM accuracy 0.8923 and post IQI-GWO RandomForest accuracy 0.9628"></div>
+      <div class="result-body">
+        <span class="rtag">Run 1 of 3</span>
+        <h3>IIITDMJ_Smoke &mdash; 4-class smoke detection</h3>
+        <p>18,914 train / 2,363 val / 2,367 test images across 4 classes. The baseline RBF-SVM on all 512 histogram features scores <b>89.23%</b> accuracy. IQI-GWO runs 10 wolves for 50 iterations (~31 minutes, 37.3s/iteration) and converges to a best fitness of <b>0.9739</b>, keeping <b>372 of 512</b> features. The final RandomForest trained on that subset reaches <b>96.28%</b> accuracy and an F1 of 0.9631 &mdash; a <b>+7.05 point</b> improvement over the baseline while still using 73% of the original features, reflecting that smoke imagery relies on a broad range of color/intensity cues.</p>
+        <div class="result-metrics">
+          <div class="rmetric"><div class="rm-val">89.23%</div><div class="rm-lbl">Baseline Acc.</div></div>
+          <div class="rmetric pos"><div class="rm-val">96.28%</div><div class="rm-lbl">After IQI-GWO</div></div>
+          <div class="rmetric"><div class="rm-val">372/512</div><div class="rm-lbl">Features Selected</div></div>
+          <div class="rmetric"><div class="rm-val">0.9739</div><div class="rm-lbl">Best Fitness</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-img-wrap"><img src="{{IMG1}}" alt="Terminal output of main.py run on LC25000 lung and colon dataset showing baseline SVM accuracy 0.9664 and post IQI-GWO RandomForest accuracy 0.9980"></div>
+      <div class="result-body">
+        <span class="rtag">Run 2 of 3</span>
+        <h3>LC25000 &mdash; lung &amp; colon histopathology</h3>
+        <p>20,250 train / 2,251 val / 2,499 test images across 5 tissue classes. This dataset already starts from the strongest baseline (<b>96.64%</b>) since histopathology stain colors are highly class-discriminative. IQI-GWO (~37 minutes, 44.5s/iteration) reaches the highest fitness of the three datasets, <b>0.9949</b>, while aggressively trimming to just <b>172 of 512</b> features (a 66.4% reduction). The final RandomForest hits <b>99.80%</b> accuracy and F1 &mdash; a near-perfect classifier built on a third of the original feature space.</p>
+        <div class="result-metrics">
+          <div class="rmetric"><div class="rm-val">96.64%</div><div class="rm-lbl">Baseline Acc.</div></div>
+          <div class="rmetric pos"><div class="rm-val">99.80%</div><div class="rm-lbl">After IQI-GWO</div></div>
+          <div class="rmetric"><div class="rm-val">172/512</div><div class="rm-lbl">Features Selected</div></div>
+          <div class="rmetric"><div class="rm-val">0.9949</div><div class="rm-lbl">Best Fitness</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-img-wrap"><img src="{{IMG2}}" alt="Terminal output of main.py run on Plant Type dataset showing baseline SVM accuracy 0.7245 and post IQI-GWO RandomForest accuracy 0.9783"></div>
+      <div class="result-body">
+        <span class="rtag">Run 3 of 3</span>
+        <h3>Plant-Type Dataset &mdash; 30-class fine-grained classification</h3>
+        <p>23,972 train / 3,030 val / 2,998 test images spread across <b>30 classes</b> &mdash; by far the hardest task, and it shows: the baseline SVM manages only <b>72.45%</b> accuracy on raw color histograms, consistent with many plant species sharing similar green foliage tones. IQI-GWO takes the longest to run (~1 hour 44 minutes, 125.3s/iteration, since RandomForest must be retrained per wolf on 30-way data) but delivers the largest gain of the three datasets: fitness <b>0.9828</b>, <b>255 of 512</b> features kept, and a final accuracy of <b>97.83%</b> &mdash; a <b>+25.38 point</b> jump over the baseline.</p>
+        <div class="result-metrics">
+          <div class="rmetric"><div class="rm-val">72.45%</div><div class="rm-lbl">Baseline Acc.</div></div>
+          <div class="rmetric pos"><div class="rm-val">97.83%</div><div class="rm-lbl">After IQI-GWO</div></div>
+          <div class="rmetric"><div class="rm-val">255/512</div><div class="rm-lbl">Features Selected</div></div>
+          <div class="rmetric"><div class="rm-val">0.9828</div><div class="rm-lbl">Best Fitness</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ADVANTAGES
+=============================================================== -->
+<section id="advantages">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">13 &middot; ADVANTAGES</span>
+      <h2>What the design gets right</h2>
+    </div>
+    <ul class="check-list good">
+      <li><i class="fa-solid fa-circle-check"></i><span>A true wrapper method &mdash; the fitness function directly optimizes held-out validation accuracy, not a proxy statistic like mutual information or variance.</span></li>
+      <li><i class="fa-solid fa-circle-check"></i><span>The quantum-inspired rotation update gives wolves a leader-independent exploration move, which can help the pack escape local optima that a pure leader-following GWO might converge to prematurely.</span></li>
+      <li><i class="fa-solid fa-circle-check"></i><span>The nonlinear <code>a</code> decay schedule keeps exploration higher for longer before sharpening into exploitation, compared to the classical linear GWO schedule.</span></li>
+      <li><i class="fa-solid fa-circle-check"></i><span>Strict train/val/test separation &mdash; the optimizer never sees the test set, and the final reported accuracy comes from a single untouched evaluation.</span></li>
+      <li><i class="fa-solid fa-circle-check"></i><span>A lightweight 512-d histogram representation keeps every fitness evaluation fast enough to run thousands of RandomForest fits across a 50-iteration search, without needing a GPU.</span></li>
+      <li><i class="fa-solid fa-circle-check"></i><span>Consistent, measured gains across three very different datasets (4, 5, and 30 classes) &mdash; the largest gain appears exactly where you'd expect, on the hardest fine-grained 30-class task.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================
+     LIMITATIONS
+=============================================================== -->
+<section id="limitations">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">14 &middot; LIMITATIONS</span>
+      <h2>What the source code shows as constraints</h2>
+    </div>
+    <ul class="check-list warn">
+      <li><i class="fa-solid fa-triangle-exclamation"></i><span>Feature representation is limited to color histograms &mdash; no texture, shape, or learned features. Classes distinguished mainly by color are favored; this likely explains why the 30-class Plant dataset has the lowest baseline (72.45%).</span></li>
+      <li><i class="fa-solid fa-triangle-exclamation"></i><span><code>fitness_function()</code> wraps the surrogate model's <code>fit/predict</code> in a bare <code>except:</code> that silently sets accuracy to 0 on any failure, with no logging of what went wrong.</span></li>
+      <li><i class="fa-solid fa-triangle-exclamation"></i><span>The <code>use_scaling</code> config key exists but is never read conditionally in <code>main.py</code> &mdash; <code>StandardScaler</code> is applied unconditionally regardless of its value.</span></li>
+      <li><i class="fa-solid fa-triangle-exclamation"></i><span>The <code>IQI_GWO</code> class's constructor defaults differ from the values actually used in every published run; importing the class directly without passing <code>CONFIG</code> values yields different (untested) behavior.</span></li>
+      <li><i class="fa-solid fa-triangle-exclamation"></i><span>Runtime scales with <code>population_size &times; max_iters</code> RandomForest fit/predict calls &mdash; the 30-class Plant dataset run took roughly 1 hour 44 minutes for the search alone.</span></li>
+      <li><i class="fa-solid fa-triangle-exclamation"></i><span>No cross-validation: each dataset uses one fixed train/val/test split, so both the search and the final reported numbers carry that split's sampling variance. (README's &plusmn; figures imply multiple external runs, but <code>main.py</code> itself performs exactly one.)</span></li>
+      <li><i class="fa-solid fa-triangle-exclamation"></i><span>No automated tests or CI configuration were found in the repository.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================
+     FUTURE SCOPE
+=============================================================== -->
+<section id="future">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">15 &middot; FUTURE SCOPE</span>
+      <h2>Where this could go next</h2>
+    </div>
+    <div class="grid grid-3">
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-network-wired"></i></div>
+        <h4>Deep Feature Extractors</h4>
+        <p>README lists integrating CNNs as a direct next step &mdash; replacing or augmenting the 512-d color histogram with learned embeddings.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-shuffle"></i></div>
+        <h4>Hybrid Optimizers</h4>
+        <p>README suggests combining IQI-GWO with other metaheuristics (e.g. PSO, genetic operators) for further search-quality gains.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-flask"></i></div>
+        <h4>Advanced Feature Extraction</h4>
+        <p>README notes experimenting with feature types beyond color histograms &mdash; e.g. texture (LBP, HOG) or edge-based descriptors.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-repeat"></i></div>
+        <h4>Built-in Cross-Validation</h4>
+        <p>Running multiple seeded folds inside <code>main.py</code> would let the mean&plusmn;std figures already reported in the README be produced directly by the code.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-plug"></i></div>
+        <h4>Pluggable Config Flags</h4>
+        <p>Wiring up <code>use_scaling</code> (and similar dormant config keys) to actually branch pipeline behavior would make the JSON config fully authoritative.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon-tile"><i class="fa-solid fa-vial-circle-check"></i></div>
+        <h4>Test Coverage</h4>
+        <p>Unit tests around <code>IQI_GWO</code>'s binary operators and <code>Load_DataSet</code>'s folder-walking logic would guard against silent regressions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CONCLUSION
+=============================================================== -->
+<section id="conclusion">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">16 &middot; CONCLUSION</span>
+      <h2>A small optimizer, a large effect on classical ML pipelines</h2>
+    </div>
+    <div class="card">
+      <p style="font-size:15px;">Across three unrelated, real-world image datasets &mdash; smoke detection, histopathology, and fine-grained plant species &mdash; IQI-GWO consistently turned an unremarkable full-feature SVM baseline into a strong RandomForest classifier while simultaneously discarding between a quarter and two-thirds of the original 512 color-histogram features. The biggest win appeared exactly where feature selection matters most: the 30-class Plant dataset, where cutting noisy bins lifted accuracy by over 25 percentage points. The implementation stays deliberately simple &mdash; no deep learning, one algorithm file, four supporting modules &mdash; which makes both the quantum-inspired exploration operator and the classic three-leader GWO hierarchy easy to read end-to-end in <code>IQI_GWO.py</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     REFERENCES
+=============================================================== -->
+<section id="references">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-num">17 &middot; REFERENCES</span>
+      <h2>Datasets, repository &amp; contact</h2>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <h4 style="font-size:15px;margin-bottom:14px;"><i class="fa-solid fa-database" style="color:var(--amber);margin-right:8px;"></i>Datasets (from instructions.md)</h4>
+        <ul class="check-list good">
+          <li><i class="fa-solid fa-link"></i><span><a href="https://www.kaggle.com/datasets/javaidahmadwani/lc25000/data" target="_blank" rel="noopener">LC25000</a> &mdash; lung &amp; colon histopathological images (Kaggle)</span></li>
+          <li><i class="fa-solid fa-link"></i><span><a href="https://www.kaggle.com/datasets/yudhaislamisulistya/plants-type-datasets" target="_blank" rel="noopener">Plants Type Datasets</a> (Kaggle)</span></li>
+          <li><i class="fa-solid fa-link"></i><span><a href="https://data.mendeley.com/datasets/4mn2g8cnsf/1" target="_blank" rel="noopener">IIITDMJ_Smoke</a> (Mendeley Data)</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4 style="font-size:15px;margin-bottom:14px;"><i class="fa-solid fa-code-branch" style="color:var(--cyan);margin-right:8px;"></i>Project &amp; Contact</h4>
+        <ul class="check-list good">
+          <li><i class="fa-brands fa-github"></i><span><a href="https://github.com/Balla-Sandeep-Sankar-NITW/IQI-GWO-Feature-Selection-for-Image-Classification" target="_blank" rel="noopener">GitHub Repository</a></span></li>
+          <li><i class="fa-solid fa-envelope"></i><span><a href="mailto:ballasandeepsankar@gmail.com">ballasandeepsankar@gmail.com</a></span></li>
+        </ul>
+        <p style="margin-top:14px;font-size:12.5px;"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div class="brand"><span class="dot-eyes"><span></span><span></span></span> IQI&#8209;GWO Documentation</div>
+    <div class="foot-links">
+      <a href="https://github.com/Balla-Sandeep-Sankar-NITW/IQI-GWO-Feature-Selection-for-Image-Classification" target="_blank" rel="noopener"><i class="fa-brands fa-github"></i> Repository</a>
+      <a href="#overview">Back to top</a>
+      <a href="#references">References</a>
+    </div>
+  </div>
+</footer>
+
+<button class="back-top" id="backTop" aria-label="Back to top"><i class="fa-solid fa-arrow-up"></i></button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script>
+hljs.highlightAll();
+
+/* ---------- mobile nav toggle ---------- */
+const topbar = document.getElementById('topbar');
+document.getElementById('navToggle').addEventListener('click', () => {
+  topbar.classList.toggle('menu-open');
+});
+document.querySelectorAll('.navlinks a').forEach(a=>{
+  a.addEventListener('click', ()=> topbar.classList.remove('menu-open'));
+});
+
+/* ---------- active nav link on scroll ---------- */
+const sections = document.querySelectorAll('main section[id]');
+const navA = document.querySelectorAll('.navlinks a');
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    const id = entry.target.getAttribute('id');
+    const link = document.querySelector(`.navlinks a[href="#${id}"]`);
+    if(!link) return;
+    if(entry.isIntersecting){
+      navA.forEach(a=>a.classList.remove('active'));
+      link.classList.add('active');
+    }
+  });
+}, {rootMargin:'-40% 0px -50% 0px'});
+sections.forEach(s=>io.observe(s));
+
+/* ---------- back to top ---------- */
+const backTop = document.getElementById('backTop');
+window.addEventListener('scroll', ()=>{
+  backTop.classList.toggle('show', window.scrollY > 500);
+});
+backTop.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
+
+/* ---------- collapsibles ---------- */
+function toggleCollapse(headEl){
+  const item = headEl.parentElement;
+  item.classList.toggle('open');
+}
+// open the first module by default
+document.querySelectorAll('.collapsible[data-open="true"]').forEach(c=>c.classList.add('open'));
+
+/* ---------- copy code ---------- */
+function copyCode(btn){
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(()=>{
+    const old = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+    setTimeout(()=> btn.innerHTML = old, 1500);
+  });
+}
+
+/* ---------- search across sections ---------- */
+const searchInput = document.getElementById('searchInput');
+const searchEmpty = document.getElementById('searchEmpty');
+let searchTimer;
+searchInput.addEventListener('input', ()=>{
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(runSearch, 120);
+});
+
+function clearHighlights(root){
+  root.querySelectorAll('mark').forEach(m=>{
+    const parent = m.parentNode;
+    parent.replaceChild(document.createTextNode(m.textContent), m);
+    parent.normalize();
+  });
+}
+
+function runSearch(){
+  const q = searchInput.value.trim().toLowerCase();
+  let visibleCount = 0;
+
+  sections.forEach(sec=>{
+    clearHighlights(sec);
+    if(q === ''){
+      sec.classList.remove('hide-section');
+      visibleCount++;
+      return;
+    }
+    const text = sec.innerText.toLowerCase();
+    const match = text.includes(q);
+    sec.classList.toggle('hide-section', !match);
+    if(match){
+      visibleCount++;
+      // expand any collapsibles inside so matched content is visible
+      sec.querySelectorAll('.collapsible').forEach(c=>{
+        if(c.innerText.toLowerCase().includes(q)) c.classList.add('open');
+      });
+    }
+  });
+
+  // toggle nav link visibility to match
+  navA.forEach(a=>{
+    const id = a.getAttribute('href').replace('#','');
+    const sec = document.getElementById(id);
+    if(!sec) return;
+    a.style.display = sec.classList.contains('hide-section') ? 'none' : '';
+  });
+
+  searchEmpty.classList.toggle('show', q !== '' && visibleCount === 0);
+}
+</script>
+</body>
+</html>
